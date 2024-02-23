@@ -23,13 +23,28 @@ const fetchVideoData = async () => {
   await fetch(videoDetails_url).then(res=>res.json()).then(data=>setApiData(data.items[0]));
 }
 const fetchOtherData = async () => {
-  // fetching channel data
-  const channelData_url = `https://youtube.googleapis.com/youtube/v3/channels?part=snippet%2CcontentDetails%2Cstatistics&id=${apiData.snippet.channelId}&key=${API_KEY}`;
-  await fetch(channelData_url).then(res=>res.json()).then(data=>setChannelData(data.items[0]));
+  try {
+    // fetching channel data
+    const channelData_url = `https://youtube.googleapis.com/youtube/v3/channels?part=snippet%2CcontentDetails%2Cstatistics&id=${apiData.snippet.channelId}&key=${API_KEY}`;
+    const channelResponse = await fetch(channelData_url);
+    if (!channelResponse.ok) {
+      throw new Error('Failed to fetch channel details');
+    }
+    const channelData = await channelResponse.json();
+    setChannelData(channelData.items[0]);
 
-  const comment_url = `https://youtube.googleapis.com/youtube/v3/commentThreads?part=snippet%2Creplies&videoId=${videoID}&key=${API_KEY}`;
-  await fetch(comment_url).then(res=>res.json()).then(data=>setCommentData(data.items));
-}
+    // Fetch comments
+    const comment_url = `https://youtube.googleapis.com/youtube/v3/commentThreads?part=snippet%2Creplies&videoId=${videoID}&key=${API_KEY}`;
+    const commentResponse = await fetch(comment_url);
+    if (!commentResponse.ok) {
+      throw new Error('Failed to fetch comments');
+    }
+    const commentData = await commentResponse.json();
+    setCommentData(commentData.items);
+  } catch (error) {
+    console.error('Error fetching other data:', error);
+  }
+};
 
 
 useEffect(()=>{
@@ -71,7 +86,7 @@ useEffect(()=>{
         {commentData.map((item, index) => {
           return(
             <div key={index} className='comment'>
-            <img src={item.snippet.topLevelComment.snippet.authorProfileImageUrl} alt="" />
+            <img src={item.snippet.topLevelComment.snippet.authorProfileImageUrl || '{user_profile}'} alt="" />
             <div>
               <h3>{item.snippet.topLevelComment.snippet.authorDisplayName}<span>1 day ago</span></h3>
               <p>{item.snippet.topLevelComment.snippet.textDisplay}</p>
